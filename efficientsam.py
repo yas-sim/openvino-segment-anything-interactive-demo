@@ -59,11 +59,16 @@ img_path = 'EfficientSAM/figs/examples/dogs.jpg'
 if len(sys.argv) > 1:
     img_path = sys.argv[1]      # Use the 1st command line parameter as the input file path if it exists
 image = cv2.imread(img_path)
+max_image_size = (1920, 1080)
+if image.shape[1]>max_image_size[0]:
+    ratio = max_image_size[0]/image.shape[1]
+    image = cv2.resize(image, (0,0), fx=ratio, fy=ratio)
+if image.shape[0]>max_image_size[1]:
+    ratio = max_image_size[1]/image.shape[0]
+    image = cv2.resize(image, (0,0), fx=ratio, fy=ratio)
 
 cv2.namedWindow(demo_name)
-#cv2.setMouseCallback(demo_name, mouse_event_handler)
 cv2.setMouseCallback(demo_name, Mouse.event)
-
 
 print('Hit ESC key to exit.\n')
 print('Clink on the image to trigger inferencing.')
