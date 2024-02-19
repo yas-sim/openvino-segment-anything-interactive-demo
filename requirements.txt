@@ -1,0 +1,7 @@
+pillow
+opencv-python
+numpy
+torch
+torchvision
+openvino>=2023.3.0
+nncf>=2.7

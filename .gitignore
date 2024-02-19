@@ -1,0 +1,13 @@
+*.pyc
+*.pyo
+*.pyd
+__py
+**/__pycache__/
+
+EfficientSAM/
+coco128/
+cache/
+
+coco128.zip
+*.bin
+*.xml
