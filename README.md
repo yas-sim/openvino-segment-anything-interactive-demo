@@ -31,6 +31,7 @@ python download_and_convert.py
 ```
 
 3. Run the demo
+Point and click on the image to kick inferencing.
 ```sh
 python efficientsam.py
 ```

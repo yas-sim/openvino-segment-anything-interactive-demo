@@ -15,6 +15,8 @@ compiled_model = ov.compile_model(f'{model_id}.xml', device_name=device, config=
 # Current mouse cursor coordinates
 g_mouse_pos = (0, 0)
 
+g_inference_trigger = False
+g_inference_pos = (0, 0)
 
 def postprocess_results(predicted_logits, predicted_iou):
     sorted_ids = np.argsort(-predicted_iou, axis=-1)
@@ -33,11 +35,19 @@ def show_mask(mask, img):
     return img
 
 def mouse_event_handler(event, x, y, flags, user):
-    global g_mouse_pos
-    g_mouse_pos = (x, y)
+    global g_mouse_curr_pos, g_inference_pos, g_inference_trigger
+    g_mouse_curr_pos = (x, y)
+    try:
+        if event == cv2.EVENT_LBUTTONUP:        # Mouse L button release event
+            g_inference_trigger = True
+            g_inference_pos = (x, y)
+    except Exception as e:
+        print(e)
 
 
-demo_name = 'EfficientSAM demo'
+
+
+demo_name = 'EfficientSAM demo - Clink on the image to trigger inferencing'
 
 # Load an image
 img_path = 'EfficientSAM/figs/examples/dogs.jpg'
@@ -50,27 +60,31 @@ cv2.setMouseCallback(demo_name, mouse_event_handler)
 
 
 print('Hit ESC key to exit.\n')
+print('Clink on the image to trigger inferencing.')
 cv2.imshow(demo_name, image)
 key = 0
 while key != 27:                # Exit on ESC key
     key = cv2.waitKey(30)
 
-    # Prepare input data for inference
-    input_img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).transpose((2,0,1)) / 255.0
-    input_img = np.expand_dims(input_img, axis=0)
-    input_pts = np.array(g_mouse_pos).reshape((1,1,-1,2))
-    input_lbl = np.array([1]).reshape((1,1,-1))
-    inputs = { 'batched_images': input_img,
-               'batched_points': input_pts,
-               'batched_point_labels' : input_lbl
-              }
+    if g_inference_trigger:
+        g_inference_trigger = False
+        # Prepare input data for inference
+        input_img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).transpose((2,0,1)) / 255.0
+        input_img = np.expand_dims(input_img, axis=0)
+        input_pts = np.array(g_inference_pos).reshape((1,1,-1,2))
+        input_lbl = np.array([1]).reshape((1,1,-1))
+        inputs = { 'batched_images': input_img,
+                'batched_points': input_pts,
+                'batched_point_labels' : input_lbl
+                }
 
-    stime = time.time()
-    res = compiled_model(inputs)                # Inference
-    etime = time.time()
-    print(f'Inference time : {etime-stime:6.2f} sec', end='\r', flush=True)
+        stime = time.time()
+        res = compiled_model(inputs)                # Inference
+        etime = time.time()
+        print(f'Inference time : {etime-stime:6.2f} sec')
 
-    # Post-process and drawing the mask on the input image
-    predicted_mask = postprocess_results(predicted_logits=res[0], predicted_iou=res[1])
-    new_img = show_mask(predicted_mask, image.copy())
-    cv2.imshow(demo_name, new_img)
+        # Post-process and drawing the mask on the input image
+        predicted_mask = postprocess_results(predicted_logits=res[0], predicted_iou=res[1])
+        new_img = show_mask(predicted_mask, image.copy())
+        new_img = cv2.drawMarker(new_img, g_inference_pos, (0,0,0), cv2.MARKER_CROSS, 20, 2)
+        cv2.imshow(demo_name, new_img)
