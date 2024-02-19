@@ -34,6 +34,8 @@ python download_and_convert.py
 Point and click on the image to kick inferencing.
 ```sh
 python efficientsam.py
+  or
+python efficientsam.py <image_file_name>
 ```
 
 ![demo](./resources/demo.gif)

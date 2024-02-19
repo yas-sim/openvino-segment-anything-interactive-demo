@@ -1,5 +1,4 @@
 import sys
-import time
 
 import cv2
 import numpy as np
@@ -12,18 +11,10 @@ model_id = 'efficient-sam-vits'
 device = 'CPU'
 compiled_model = ov.compile_model(f'{model_id}.xml', device_name=device, config={'CACHE_DIR':'./cache'})
 
-# Current mouse cursor coordinates
-g_mouse_pos = (0, 0)
-
-g_inference_trigger = False
-g_inference_pos = (0, 0)
-
 def postprocess_results(predicted_logits, predicted_iou):
     sorted_ids = np.argsort(-predicted_iou, axis=-1)
-    predicted_iou = np.take_along_axis(predicted_iou, sorted_ids, axis=2)
-    predicted_logits = np.take_along_axis(
-        predicted_logits, sorted_ids[..., None, None], axis=2
-    )
+    predicted_iou    = np.take_along_axis(predicted_iou   , sorted_ids                 , axis=2)
+    predicted_logits = np.take_along_axis(predicted_logits, sorted_ids[..., None, None], axis=2)
     return predicted_logits[0, 0, 0, :, :] >= 0
 
 def show_mask(mask, img):
@@ -31,19 +22,33 @@ def show_mask(mask, img):
     mask_color = (0,255,255)
     mask_img[mask] = mask_color
     alpha = 0.3
-    cv2.addWeighted(mask_img, alpha, img, 1-alpha, 0, img)
+    cv2.addWeighted(mask_img, alpha, img, 1-alpha, 0, img)   # alpha blending
     return img
 
-def mouse_event_handler(event, x, y, flags, user):
-    global g_mouse_curr_pos, g_inference_pos, g_inference_trigger
-    g_mouse_curr_pos = (x, y)
-    try:
-        if event == cv2.EVENT_LBUTTONUP:        # Mouse L button release event
-            g_inference_trigger = True
-            g_inference_pos = (x, y)
-    except Exception as e:
-        print(e)
+class Mouse:
+    curr_pos = (0,0)
+    click_pos = (0,0)
+    clicked = False
 
+    def __init__(self):
+        Mouse.curr_pos = (0,0)
+        Mouse.click_pos = (0,0)
+        Mouse.clicked = False
+
+    def event(event, x, y, flags, user):
+        Mouse.curr_pos = (x, y)
+        if event==cv2.EVENT_LBUTTONUP:        # Mouse L button release event
+            Mouse.click_pos = (x, y)
+            Mouse.clicked = True
+    
+    def clear_click_event():
+        Mouse.clicked = False
+    
+    def is_clicked():
+        return Mouse.clicked
+    
+    def get_click_pos():
+        return Mouse.click_pos
 
 
 
@@ -56,7 +61,8 @@ if len(sys.argv) > 1:
 image = cv2.imread(img_path)
 
 cv2.namedWindow(demo_name)
-cv2.setMouseCallback(demo_name, mouse_event_handler)
+#cv2.setMouseCallback(demo_name, mouse_event_handler)
+cv2.setMouseCallback(demo_name, Mouse.event)
 
 
 print('Hit ESC key to exit.\n')
@@ -66,25 +72,23 @@ key = 0
 while key != 27:                # Exit on ESC key
     key = cv2.waitKey(30)
 
-    if g_inference_trigger:
-        g_inference_trigger = False
+    if Mouse.is_clicked():
+        Mouse.clear_click_event()
         # Prepare input data for inference
         input_img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).transpose((2,0,1)) / 255.0
         input_img = np.expand_dims(input_img, axis=0)
-        input_pts = np.array(g_inference_pos).reshape((1,1,-1,2))
+        click_pos = Mouse.get_click_pos()
+        input_pts = np.array(click_pos).reshape((1,1,-1,2))
         input_lbl = np.array([1]).reshape((1,1,-1))
         inputs = { 'batched_images': input_img,
                 'batched_points': input_pts,
                 'batched_point_labels' : input_lbl
                 }
 
-        stime = time.time()
         res = compiled_model(inputs)                # Inference
-        etime = time.time()
-        print(f'Inference time : {etime-stime:6.2f} sec')
 
         # Post-process and drawing the mask on the input image
         predicted_mask = postprocess_results(predicted_logits=res[0], predicted_iou=res[1])
         new_img = show_mask(predicted_mask, image.copy())
-        new_img = cv2.drawMarker(new_img, g_inference_pos, (0,0,0), cv2.MARKER_CROSS, 20, 2)
+        new_img = cv2.drawMarker(new_img, click_pos, (0,0,0), cv2.MARKER_CROSS, 20, 2)
         cv2.imshow(demo_name, new_img)
