@@ -13,6 +13,7 @@ This demo supports following models from [yformer/EfficientSAM GitHub repo](http
 |1|download_and_convert.py|Clone the EfficientSAM GitHub repo and convert the model into OpenVINO IR model.|
 |2|efficientsam.py|Run the EfficientSAM interactive demo with OpenVINO|
 
+
 ## How to run
 
 1. Install prerequisites
@@ -35,8 +36,18 @@ Point and click on the image to kick inferencing.
 ```sh
 python efficientsam.py
   or
-python efficientsam.py <image_file_name>
+python efficientsam.py -i <image_file_name>
 ```
+
+Command line options:
+```sh
+  -h, --help            show this help message and exit
+  -i INPUT, --input INPUT
+                        Path to an input image file
+  -n NUM_POINTS, --num_points NUM_POINTS
+                        Number of points for an inference
+```
+
 
 ![demo](./resources/demo.gif)
 ## Test environment
