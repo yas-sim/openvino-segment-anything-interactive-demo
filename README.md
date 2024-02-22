@@ -41,16 +41,19 @@ python efficientsam.py -i <image_file_name>
 
 Command line options:
 ```sh
+options:
   -h, --help            show this help message and exit
   -i INPUT, --input INPUT
                         Path to an input image file
   -n NUM_POINTS, --num_points NUM_POINTS
-                        Number of points for an inference
+                        Number of points for an inference (default:1)
+  -f, --full_screen     Full screen mode
 ```
+## Demo  
+`python .\efficientsam.py -i .\trolley.jpg -n 3 -f`
+![demo](./resources/demo2.gif)
 
-
-![demo](./resources/demo.gif)
-## Test environment
+## Test environment  
 - Windows 11
 - Python 3.10.3
 - OpenVINO 2023.3.0
